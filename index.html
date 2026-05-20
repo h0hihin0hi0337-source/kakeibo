@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ASMIT">
+<title>ASMIT — アスミット株式会社</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --gold:#C9A84C;--gold2:#E8C96A;--gold3:#F5E4A8;--gold-dim:#7A6030;
+  --sage:#2D5E42;--sage2:#3A7A56;--sage3:#5aab7e;--sage-dim:#1A3828;
+  --ink:#0A0F0C;--ink2:#141A15;--ink3:#1E2820;
+  --surface:#F9F7F2;--surface2:#F2EFE8;--surface3:#E8E4DA;
+  --text-primary:#0A0F0C;--text-secondary:#4A5248;--text-muted:#8A9288;
+  --white:#FFFFFF;
+  --border:#D8D4C8;--border2:#C4C0B4;
+  --danger:#C0392B;--danger-bg:#FDF0EF;
+  --success:#2D5E42;--success-bg:#EDF5F0;
+  --warn:#8a6500;--warn-bg:#FDF3D8;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;--r-xl:24px;
+  --shadow:0 1px 3px rgba(10,15,12,.08),0 4px 12px rgba(10,15,12,.06);
+  --shadow-lg:0 8px 32px rgba(10,15,12,.12),0 2px 8px rgba(10,15,12,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}#app{display:none;}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text-primary);display:flex;flex-direction:column;}
+
+/* ── SPLASH ── */
+#splash{position:relative;width:100%;height:100%;background:#020507;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0;transition:opacity .35s ease;}
+#splash.done{opacity:0;pointer-events:none;}
+.sp-bg{position:absolute;inset:0;width:100%;height:100%;}
+.sp-c{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;}
+.sp-em{position:relative;width:88px;height:88px;margin-bottom:26px;opacity:0;animation:em-in .6s .1s cubic-bezier(.2,0,.1,1) forwards;}
+@keyframes em-in{from{opacity:0;transform:scale(.85);}to{opacity:1;transform:scale(1);}}
+.sp-r1{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(201,168,76,.22);animation:rot 16s linear infinite;}
+.sp-r2{position:absolute;inset:9px;border-radius:50%;border:1px solid rgba(201,168,76,.1);animation:rot 10s linear reverse infinite;}
+@keyframes rot{to{transform:rotate(360deg);}}
+.sp-rd{position:absolute;top:-3px;left:50%;margin-left:-3px;width:5px;height:5px;border-radius:50%;background:rgba(201,168,76,.8);}
+.sp-core{position:absolute;inset:22px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#1A2C1C,#060C07);border:1px solid rgba(201,168,76,.28);display:flex;align-items:center;justify-content:center;}
+.sp-kanji{font-family:'Cormorant Garamond',Georgia,serif;font-size:17px;color:rgba(201,168,76,.9);}
+.sp-yr{font-size:9px;letter-spacing:.42em;color:rgba(255,255,255,.16);margin-bottom:18px;opacity:0;animation:sp-up .5s .5s ease forwards;}
+.sp-nm{font-family:'Cormorant Garamond',Georgia,serif;font-size:42px;font-weight:400;color:#EDE8E0;letter-spacing:.55em;text-indent:.55em;margin-bottom:5px;opacity:0;animation:sp-up .5s .62s ease forwards;}
+.sp-ns{font-size:9px;letter-spacing:.36em;color:rgba(201,168,76,.6);margin-bottom:18px;opacity:0;animation:sp-up .4s .74s ease forwards;}
+.sp-div{display:flex;align-items:center;gap:13px;margin-bottom:14px;opacity:0;animation:sp-up .4s .84s ease forwards;}
+.sp-dl{width:26px;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.4));}
+.sp-dr{width:26px;height:1px;background:linear-gradient(90deg,rgba(201,168,76,.4),transparent);}
+.sp-dm{width:4px;height:4px;background:rgba(201,168,76,.65);transform:rotate(45deg);}
+.sp-cp{font-size:9px;letter-spacing:.28em;color:rgba(255,255,255,.18);opacity:0;animation:sp-up .4s .92s ease forwards;}
+@keyframes sp-up{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+
+/* ── GAS版追加スタイル ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(249,247,242,.9);display:flex;align-items:center;justify-content:center;z-index:9998;transition:opacity .4s;}
+.loading-overlay.hide{opacity:0;pointer-events:none;}
+.loading-spinner{width:32px;height:32px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sync-indicator{position:fixed;top:60px;right:12px;font-size:10px;padding:4px 10px;border-radius:20px;z-index:100;transition:all .3s;}
+.sync-ok{background:#E8F5EE;color:#2D5E42;}
+.sync-err{background:#FDF0EF;color:#C0392B;}
+</style>
+</head>
+<body>
+<!-- SPLASH -->
+<div id="splash">
+  <svg class="sp-bg" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="sp-bg" cx="50%" cy="40%" r="70%">
+        <stop offset="0%" stop-color="#0C1A10"/>
+        <stop offset="100%" stop-color="#010305"/>
+      </radialGradient>
+      <radialGradient id="sp-gl" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#C9A84C" stop-opacity=".04"/>
+        <stop offset="100%" stop-color="transparent"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="500" fill="url(#sp-bg)"/>
+    <ellipse cx="200" cy="240" rx="180" ry="140" fill="url(#sp-gl)"/>
+    <line x1="60" y1="420" x2="340" y2="420" stroke="#C9A84C" stroke-width=".3" opacity=".08"/>
+    <g fill="#fff">
+      <circle cx="25" cy="20" r=".7" opacity=".5"/>
+      <circle cx="80" cy="12" r=".5" opacity=".38"/>
+      <circle cx="138" cy="28" r=".6" opacity=".44"/>
+      <circle cx="200" cy="15" r=".4" opacity=".32"/>
+      <circle cx="260" cy="22" r=".7" opacity=".48"/>
+      <circle cx="318" cy="10" r=".5" opacity=".38"/>
+      <circle cx="372" cy="26" r=".6" opacity=".44"/>
+      <circle cx="45" cy="58" r=".5" opacity=".34"/>
+      <circle cx="105" cy="65" r=".6" opacity=".42"/>
+      <circle cx="195" cy="52" r=".4" opacity=".30"/>
+      <circle cx="295" cy="60" r=".7" opacity=".46"/>
+      <circle cx="358" cy="68" r=".5" opacity=".36"/>
+      <circle cx="22" cy="95" r=".4" opacity=".28"/>
+      <circle cx="380" cy="90" r=".6" opacity=".4"/>
+    </g>
+  </svg>
+  <div class="sp-c">
+    <div class="sp-em">
+      <div class="sp-r1"><div class="sp-rd"></div></div>
+      <div class="sp-r2"></div>
+      <div class="sp-core"><span class="sp-kanji">旭</span></div>
+    </div>
+    <div class="sp-yr">HOKKAIDO · ASAHIKAWA · EST. 2026</div>
+    <div class="sp-nm">ASMIT</div>
+    <div class="sp-ns">REAL ESTATE ASSET MANAGEMENT</div>
+    <div class="sp-div"><div class="sp-dl"></div><div class="sp-dm"></div><div class="sp-dr"></div></div>
+    <div class="sp-cp">アスミット株式会社</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="h-brand">
+      <div class="h-logo">旭</div>
+      <div>
+        <div class="h-name">ASMIT</div>
+        <div class="h-sub">アスミット株式会社</div>
+      </div>
+    </div>
+    <div class="h-sync" id="sync-badge">
+      <div class="h-sync-dot"></div>
+      <span>共有中</span>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab on" onclick="nav('dash',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      ダッシュボード
+    </div>
+    <div class="tab" onclick="nav('buy',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      買い判断
+    </div>
+    <div class="tab" onclick="nav('fin',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      財務
+    </div>
+    <div class="tab" onclick="nav('loan',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
+      融資
+    </div>
+    <div class="tab" onclick="nav('port',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10H3M21 6H3M21 14H3M21 18H3"/></svg>
+      物件
+    </div>
+  </div>
+
+  <!-- PAGES -->
+  <div class="pages">
+
+    <!-- DASHBOARD -->
+    <div class="page on" id="pg-dash">
+      <div class="accent-bar"></div>
+      <div class="met-grid">
+        <div class="met anim" style="animation-delay:.05s">
+          <div class="met-l">保有物件</div>
+          <div class="met-v a" id="d-props">0棟</div>
+          <div class="met-sub">総戸数 <span id="d-units">0</span>戸</div>
+        </div>
+        <div class="met anim" style="animation-delay:.1s">
+          <div class="met-l">満室想定年収</div>
+          <div class="met-v g" id="d-income">0円</div>
+          <div class="met-sub">法人・個人合計</div>
+        </div>
+        <div class="met anim" style="animation-delay:.15s">
+          <div class="met-l">借入残高</div>
+          <div class="met-v r" id="d-debt">0円</div>
+          <div class="met-sub">月返済 <span id="d-monthly">0</span>円</div>
+        </div>
+        <div class="met anim" style="animation-delay:.2s">
+          <div class="met-l">月次CF（概算）</div>
+          <div class="met-v" id="d-cf">0円</div>
+          <div class="met-sub">収支差引</div>
+        </div>
+      </div>
+
+      <div class="sec">最近の記録</div>
+      <div class="card anim" style="animation-delay:.25s">
+        <div id="d-recent">
+          <div class="empty">
+            <div class="empty-icon">📋</div>
+            <div class="empty-text">まだデータがありません<br>各タブからデータを追加してください</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">物件ポートフォリオ</div>
+      <div class="card anim" style="animation-delay:.3s" id="d-portlist">
+        <div class="empty"><div class="empty-icon">🏠</div><div class="empty-text">物件情報がありません</div></div>
+      </div>
+      <div class="page-end"></div>
+    </div>
+
+    <!-- BUY JUDGMENT -->
+    <div class="page" id="pg-buy">
+      <div class="accent-bar"></div>
+      <div class="sec">物件情報</div>
+      <div class="card">
+        <div class="row2">
+          <div class="field"><label>物件価格（万円）</label><input type="number" id="bp" placeholder="3000" inputmode="decimal" oninput="calc()"></div>
+          <div class="field"><label>満室月額賃料（万円）</label><input type="number" id="br" placeholder="48" inputmode="decimal" oninput="calc()"></div>
+          <div class="field"><label>空室率（%）</label><input type="number" id="bv" placeholder="10" inputmode="decimal" oninput="calc()"></div>
+          <div class="field"><label>年間諸経費（万円）</label><input type="number" id="bc" placeholder="36" inputmode="decimal" oninput="calc()"></div>
+        </div>
+      </div>
+
+      <div class="sec">融資条件</div>
+      <div class="card">
+        <div class="row2">
+          <div class="field"><label>自己資金（万円）</label><input type="number" id="be" placeholder="600" inputmode="decimal" oninput="calc()"></div>
+          <div class="field"><label>融資金利（%）</label><input type="number" id="brate" placeholder="3.0" step="0.1" inputmode="decimal" oninput="calc()"></div>
+          <div class="field"><label>融資期間（年）</label><input type="number" id="bterm" placeholder="25" inputmode="decimal" oninput="calc()"></div>
+          <div class="field"><label>築年数（年）</label><input type="number" id="bage" placeholder="20" inputmode="decimal" oninput="calc()"></div>
+        </div>
+        <div class="field" style="margin-top:10px;"><label>構造</label>
+          <select id="bst" onchange="calc()">
+            <option value="47">RC造（耐用年数47年）</option>
+            <option value="34">重量鉄骨（34年）</option>
+            <option value="27" selected>軽量鉄骨（27年）</option>
+            <option value="22">木造（22年）</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="bres" style="display:none;">
+        <div class="result-box anim">
+          <div class="result-title">収益シミュレーション</div>
+          <div class="result-grid">
+            <div class="result-item"><div class="rl">表面利回り</div><div class="rv a" id="r0">—</div></div>
+            <div class="result-item"><div class="rl">実質利回り</div><div class="rv" id="r1">—</div></div>
+            <div class="result-item"><div class="rl">年間CF</div><div class="rv" id="r2">—</div></div>
+            <div class="result-item"><div class="rl">CF利回り</div><div class="rv" id="r3">—</div></div>
+            <div class="result-item"><div class="rl">月間返済額</div><div class="rv" id="r4">—</div></div>
+            <div class="result-item"><div class="rl">DCR（余裕率）</div><div class="rv" id="r5">—</div></div>
+            <div class="result-item"><div class="rl">LTV</div><div class="rv" id="r6">—</div></div>
+            <div class="result-item"><div class="rl">残耐用年数</div><div class="rv" id="r7">—</div></div>
+          </div>
+          <div class="verdict" id="verd">判定中...</div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="row2">
+            <div class="field"><label>物件名</label><input type="text" id="bname" placeholder="東光アパート"></div>
+            <div class="field"><label>記録者</label>
+              <select id="bwho"><option>夫</option><option>妻</option></select>
+            </div>
+          </div>
+          <button class="btn btn-gold btn-full" style="margin-top:10px;" onclick="saveBuy()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            この物件を保存
+          </button>
+        </div>
+
+        <!-- CF シミュレーション -->
+        <div class="card" style="margin-top:12px;">
+          <div class="card-title">
+            <div class="icon icon-sage">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            キャッシュフローシミュレーション
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:100px;">
+              <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;">家賃下落率/年</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <input type="range" id="cf-decay" min="0" max="3" step="0.5" value="1" style="flex:1;" oninput="renderCF();g('cf-decay-v').textContent=this.value+'%'">
+                <span id="cf-decay-v" style="font-size:12px;font-weight:600;color:var(--text-primary);width:28px;">1%</span>
+              </div>
+            </div>
+            <div style="flex:1;min-width:100px;">
+              <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;">シミュレーション期間</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <input type="range" id="cf-years" min="5" max="30" step="5" value="20" style="flex:1;" oninput="renderCF();g('cf-years-v').textContent=this.value+'年'">
+                <span id="cf-years-v" style="font-size:12px;font-weight:600;color:var(--text-primary);width:28px;">20年</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- グラフエリア -->
+          <div style="position:relative;height:160px;margin-bottom:10px;" id="cf-chart-wrap">
+            <canvas id="cf-canvas" style="width:100%;height:100%;"></canvas>
+          </div>
+
+          <!-- 累計サマリー -->
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px;">
+            <div style="background:var(--surface);border-radius:var(--r-md);padding:10px;text-align:center;">
+              <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">累計CF</div>
+              <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;" id="cf-total-cf">—</div>
+            </div>
+            <div style="background:var(--surface);border-radius:var(--r-md);padding:10px;text-align:center;">
+              <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">累計返済総額</div>
+              <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;" id="cf-total-repay">—</div>
+            </div>
+            <div style="background:var(--surface);border-radius:var(--r-md);padding:10px;text-align:center;">
+              <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">CF黒字転換</div>
+              <div style="font-size:13px;font-weight:600;" id="cf-breakeven">—</div>
+            </div>
+          </div>
+
+          <!-- 年次表 -->
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:340px;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border);">
+                  <th style="padding:6px 4px;text-align:left;color:var(--text-muted);font-weight:500;white-space:nowrap;">年次</th>
+                  <th style="padding:6px 4px;text-align:right;color:var(--text-muted);font-weight:500;white-space:nowrap;">年間賃料</th>
+                  <th style="padding:6px 4px;text-align:right;color:var(--text-muted);font-weight:500;white-space:nowrap;">年間返済</th>
+                  <th style="padding:6px 4px;text-align:right;color:var(--text-muted);font-weight:500;white-space:nowrap;">年間CF</th>
+                  <th style="padding:6px 4px;text-align:right;color:var(--text-muted);font-weight:500;white-space:nowrap;">累計CF</th>
+                </tr>
+              </thead>
+              <tbody id="cf-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="bhist-wrap" style="display:none;">
+        <div class="sec">検討済み物件（共有）</div>
+        <div id="bhist"></div>
+      </div>
+      <div class="page-end"></div>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="page" id="pg-fin">
+      <div class="accent-bar"></div>
+      <div class="met-grid">
+        <div class="met"><div class="met-l">収入合計</div><div class="met-v g" id="fi0">0円</div></div>
+        <div class="met"><div class="met-l">支出合計</div><div class="met-v r" id="fi1">0円</div></div>
+        <div class="met"><div class="met-l">月間CF</div><div class="met-v a" id="fi2">0円</div></div>
+        <div class="met"><div class="met-l">年換算CF</div><div class="met-v" id="fi3">0円</div></div>
+      </div>
+
+      <div class="sec">収入を追加</div>
+      <div class="card">
+        <div class="row2">
+          <div class="field"><label>年月</label><input type="month" id="fim" value="2026-07"></div>
+          <div class="field"><label>カテゴリ</label>
+            <select id="fic"><option>家賃収入</option><option>礼金・敷金</option><option>駐車場収入</option><option>その他収入</option></select>
+          </div>
+          <div class="field"><label>物件名</label><input type="text" id="fip" placeholder="東光アパート"></div>
+          <div class="field"><label>金額（円）</label><input type="number" id="fia" placeholder="480000" inputmode="decimal"></div>
+        </div>
+        <div class="row2" style="gap:8px;margin-top:10px;">
+          <div class="field"><label>記録者</label><select id="fiu"><option>夫</option><option>妻</option></select></div>
+          <div style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary btn-full" onclick="addInc()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              収入追加
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">支出を追加</div>
+      <div class="card">
+        <div class="row2">
+          <div class="field"><label>年月</label><input type="month" id="fem" value="2026-07"></div>
+          <div class="field"><label>カテゴリ</label>
+            <select id="fec"><option>ローン返済</option><option>管理費</option><option>修繕費</option><option>固定資産税</option><option>保険料</option><option>出張旅費</option><option>その他経費</option></select>
+          </div>
+          <div class="field"><label>内容</label><input type="text" id="fep" placeholder="東光アパート"></div>
+          <div class="field"><label>金額（円）</label><input type="number" id="fea" placeholder="120000" inputmode="decimal"></div>
+        </div>
+        <div class="row2" style="gap:8px;margin-top:10px;">
+          <div class="field"><label>記録者</label><select id="feu"><option>夫</option><option>妻</option></select></div>
+          <div style="display:flex;align-items:flex-end;">
+            <button class="btn btn-outline btn-full" onclick="addExp()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              支出追加
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="fin-empty" class="empty"><div class="empty-icon">💴</div><div class="empty-text">収支データがありません</div></div>
+      <div id="fin-list" style="display:none;">
+        <div class="sec">収支明細（共有）</div>
+        <div class="card" id="fin-body"></div>
+      </div>
+      <div class="page-end"></div>
+    </div>
+
+    <!-- LOAN -->
+    <div class="page" id="pg-loan">
+      <div class="accent-bar"></div>
+      <div class="met-grid">
+        <div class="met"><div class="met-l">借入残高合計</div><div class="met-v r" id="lo0">0円</div></div>
+        <div class="met"><div class="met-l">月間返済合計</div><div class="met-v" id="lo1">0円</div></div>
+        <div class="met"><div class="met-l">年間返済合計</div><div class="met-v" id="lo2">0円</div></div>
+        <div class="met"><div class="met-l">借入件数</div><div class="met-v a" id="lo3">0件</div></div>
+      </div>
+
+      <div class="sec">融資を追加</div>
+      <div class="card">
+        <div class="row2">
+          <div class="field"><label>物件名</label><input type="text" id="lna" placeholder="東光アパート"></div>
+          <div class="field"><label>金融機関</label>
+            <select id="lba"><option>北洋銀行</option><option>旭川信用金庫</option><option>北海道銀行</option><option>北見信用金庫</option><option>日本政策金融公庫</option><option>その他</option></select>
+          </div>
+          <div class="field"><label>借入額（万円）</label><input type="number" id="lam" placeholder="2400" inputmode="decimal"></div>
+          <div class="field"><label>金利（%）</label><input type="number" id="lra" placeholder="3.0" step="0.1" inputmode="decimal"></div>
+          <div class="field"><label>借入期間（年）</label><input type="number" id="lte" placeholder="25" inputmode="decimal"></div>
+          <div class="field"><label>名義</label>
+            <select id="low"><option>アスミット株式会社</option><option>夫（個人）</option><option>妻（個人）</option></select>
+          </div>
+        </div>
+        <button class="btn btn-gold btn-full" style="margin-top:10px;" onclick="addLoan()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          融資を追加
+        </button>
+      </div>
+
+      <div id="loan-empty" class="empty"><div class="empty-icon">🏦</div><div class="empty-text">融資情報がありません</div></div>
+      <div id="loan-list" style="display:none;">
+        <div class="sec">借入一覧（共有）</div>
+        <div id="loan-body"></div>
+      </div>
+      <div class="page-end"></div>
+    </div>
+
+    <!-- PORTFOLIO -->
+    <div class="page" id="pg-port">
+      <div class="accent-bar"></div>
+      <div class="met-grid">
+        <div class="met"><div class="met-l">保有物件数</div><div class="met-v a" id="po0">0棟</div></div>
+        <div class="met"><div class="met-l">総戸数</div><div class="met-v" id="po1">0戸</div></div>
+        <div class="met"><div class="met-l">満室想定年収</div><div class="met-v g" id="po2">0円</div></div>
+        <div class="met"><div class="met-l">総資産評価額</div><div class="met-v" id="po3">0円</div></div>
+      </div>
+
+      <div class="sec">物件を追加</div>
+      <div class="card">
+        <div class="row2">
+          <div class="field"><label>物件名</label><input type="text" id="pna" placeholder="東光アパート"></div>
+          <div class="field"><label>所在地</label><input type="text" id="pad" placeholder="旭川市東光3条"></div>
+          <div class="field"><label>種別</label>
+            <select id="pty"><option>アパート</option><option>マンション</option><option>戸建て</option><option>商業</option></select>
+          </div>
+          <div class="field"><label>名義</label>
+            <select id="pow"><option>アスミット株式会社</option><option>夫（個人）</option><option>妻（個人）</option></select>
+          </div>
+          <div class="field"><label>取得価格（万円）</label><input type="number" id="ppr" placeholder="3000" inputmode="decimal"></div>
+          <div class="field"><label>現在評価額（万円）</label><input type="number" id="pva" placeholder="3000" inputmode="decimal"></div>
+          <div class="field"><label>総戸数</label><input type="number" id="pun" placeholder="6" inputmode="decimal"></div>
+          <div class="field"><label>入居中戸数</label><input type="number" id="poc" placeholder="6" inputmode="decimal"></div>
+          <div class="field"><label>月額賃料（満室・万円）</label><input type="number" id="pre" placeholder="48" inputmode="decimal"></div>
+          <div class="field"><label>取得年月</label><input type="month" id="pdt" value="2025-01"></div>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="addProp()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          物件を追加
+        </button>
+      </div>
+
+      <div id="port-empty" class="empty"><div class="empty-icon">🏢</div><div class="empty-text">物件情報がありません</div></div>
+      <div id="port-list" style="display:none;">
+        <div class="sec">保有物件一覧（共有）</div>
+        <div id="port-body"></div>
+      </div>
+      <div class="page-end"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+</div>
+
+<div class="sync-indicator sync-ok" id="sync-ind" style="display:none;">同期中...</div>
+
+<script>
+
+// ── STATE ──
+var S={buy:[],fin:[],loan:[],prop:[]};
+var KEYS={buy:'asmit-buy',fin:'asmit-fin',loan:'asmit-loan',prop:'asmit-prop'};
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbymFFHYKqQMj_pnk8KZVUcm2mcxQ4orpZx98rTXqZUvyQTVn1KG4Q5shgsSJqKcAygl/exec';
+
+// ── STORAGE（Google Apps Script連携） ──
+async function sload(key){
+  try{
+    var res=await fetch(GAS_URL+'?action=get&key='+encodeURIComponent(key));
+    var json=await res.json();
+    return json.value?JSON.parse(json.value):[];
+  }catch(e){
+    var local=localStorage.getItem(key);
+    return local?JSON.parse(local):[];
+  }
+}
+async function ssave(key,data){
+  var val=JSON.stringify(data);
+  localStorage.setItem(key,val);
+  if(!GAS_URL)return;
+  try{
+    await fetch(GAS_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'set',key:key,value:val})
+    });
+  }catch(e){}
+}
+
+// ── INIT ──
+async function init(){
+  try{
+    S.buy=await sload(KEYS.buy);
+    S.fin=await sload(KEYS.fin);
+    S.loan=await sload(KEYS.loan);
+    S.prop=await sload(KEYS.prop);
+  }catch(e){}
+  renderAll();
+  setTimeout(function(){
+    var sp=document.getElementById('splash');
+    var app=document.getElementById('app');
+    sp.classList.add('done');
+    app.style.display='flex';
+    setTimeout(function(){sp.style.display='none';},800);
+  },2200);
+}
+init();
+
+// ── UTILS ──
+function fmt(n){return Math.round(n).toLocaleString('ja-JP');}
+function g(id){return document.getElementById(id);}
+function toast(msg){
+  var t=g('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+function renderAll(){renderDash();renderBuy();renderFin();renderLoan();renderPort();}
+
+// ── NAV ──
+function nav(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  g('pg-'+id).classList.add('on');
+  el.classList.add('on');
+}
+
+// ── DASHBOARD ──
+function renderDash(){
+  var tc=S.prop.reduce((s,p)=>s+p.units,0);
+  var tinc=S.prop.reduce((s,p)=>s+p.rent,0)*12*10000;
+  var tdebt=S.loan.reduce((s,l)=>s+l.remaining,0);
+  var tmo=S.loan.reduce((s,l)=>s+l.monthly,0);
+  var finInc=S.fin.filter(f=>f.t==='inc').reduce((s,f)=>s+f.amount,0);
+  var finExp=S.fin.filter(f=>f.t==='exp').reduce((s,f)=>s+f.amount,0);
+  var cf=finInc-finExp;
+  g('d-props').textContent=S.prop.length+'棟';
+  g('d-units').textContent=tc;
+  g('d-income').textContent=fmt(tinc)+'円';
+  g('d-income').className='met-v g';
+  g('d-debt').textContent=fmt(tdebt)+'円';
+  g('d-monthly').textContent=fmt(tmo);
+  var cfEl=g('d-cf');cfEl.textContent=(cf>=0?'+':'')+fmt(cf)+'円';
+  cfEl.className='met-v '+(cf>0?'g':cf<0?'r':'');
+
+  // recent
+  var all=[...S.fin.map(f=>({...f,_type:'fin'})),...S.buy.map(b=>({...b,_type:'buy'}))];
+  all.sort((a,b)=>b.id-a.id);
+  var recent=all.slice(0,4);
+  if(!recent.length){
+    g('d-recent').innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">まだデータがありません<br>各タブからデータを追加してください</div></div>';
+  } else {
+    g('d-recent').innerHTML=recent.map(r=>{
+      if(r._type==='fin'){
+        return `<div class="list-item"><div class="li-row"><div class="li-name">${r.cat} — ${r.prop}</div><span class="badge ${r.t==='inc'?'b-sage':'b-danger'}">${r.t==='inc'?'収入':'支出'}</span></div><div class="li-row"><div class="li-sub">${r.m} ／ ${r.user||'—'}が記録</div><div class="li-amount ${r.t==='inc'?'inc':'exp'}">${r.t==='inc'?'+':'-'}${fmt(r.amount)}円</div></div></div>`;
+      } else {
+        return `<div class="list-item"><div class="li-row"><div class="li-name">${r.name}</div><span class="badge ${r.verdict&&r.verdict.includes('買い')?'b-sage':r.verdict&&r.verdict.includes('要検討')?'b-gold':'b-danger'}">${r.verdict&&r.verdict.includes('買い')?'買い推奨':r.verdict&&r.verdict.includes('要検討')?'要検討':'見送り'}</span></div><div class="li-sub">${r.price}万円 ／ 表面${r.gross} ／ ${r.who||'—'}が記録</div></div>`;
+      }
+    }).join('');
+  }
+
+  // port summary in dash
+  if(!S.prop.length){
+    g('d-portlist').innerHTML='<div class="empty"><div class="empty-icon">🏠</div><div class="empty-text">物件情報がありません</div></div>';
+  } else {
+    g('d-portlist').innerHTML=S.prop.map(p=>{
+      var occ=p.units>0?Math.round((p.occ/p.units)*100):0;
+      var gy=p.price>0?((p.rent*12)/p.price*100).toFixed(2):'—';
+      return `<div class="list-item"><div class="li-row"><div class="li-name">${p.name}</div><span class="badge ${p.owner==='アスミット株式会社'?'b-gold':'b-sage'}">${p.owner==='アスミット株式会社'?'法人':'個人'}</span></div><div class="li-sub">${p.addr} ／ ${p.type} ／ 表面${gy}%</div><div style="margin-top:6px;"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:3px;"><span>入居率</span><span>${p.occ}/${p.units}戸（${occ}%）</span></div><div class="occ-bar"><div class="occ-fill" style="width:${occ}%;background:${occ>=90?'var(--sage)':occ>=70?'var(--gold)':'var(--danger)'};"></div></div></div></div>`;
+    }).join('');
+  }
+}
+
+// ── BUY ──
+function calc(){
+  var p=+g('bp').value,r=+g('br').value,v=+g('bv').value||10,c=+g('bc').value;
+  var e=+g('be').value,rate=+g('brate').value||3,term=+g('bterm').value||25;
+  var age=+g('bage').value,st=+g('bst').value||27;
+  if(!p||!r)return;
+  var ay=r*12,ey=ay*(1-v/100),noi=ey-c;
+  var la=(p-e)*10000,mr=rate/100/12,mo=term*12;
+  var mp=la>0?la*(mr*Math.pow(1+mr,mo))/(Math.pow(1+mr,mo)-1):0;
+  var ap=mp*12,cf=noi*10000-ap,cfr=e>0?(cf/(e*10000))*100:0;
+  var dcr=ap>0?(noi*10000)/ap:99,ltv=((p-e)/p)*100,rl=Math.max(0,st-age);
+  g('r0').textContent=((ay/p)*100).toFixed(2)+'%';
+  g('r1').textContent=((noi/p)*100).toFixed(2)+'%';
+  var cfEl=g('r2');cfEl.textContent=(cf>=0?'+':'')+fmt(cf)+'円';cfEl.className='rv '+(cf>0?'g':'r');
+  g('r3').textContent=cfr.toFixed(2)+'%';
+  g('r4').textContent=fmt(mp)+'円/月';
+  var dEl=g('r5');dEl.textContent=dcr.toFixed(2)+'倍';dEl.className='rv '+(dcr>=1.2?'g':dcr>=1.0?'a':'r');
+  g('r6').textContent=ltv.toFixed(1)+'%';
+  g('r7').textContent=rl+'年';
+  var gy=(ay/p)*100;
+  var vd=g('verd');
+  if(gy>=7&&dcr>=1.2&&cf>0&&rl>=10){vd.className='verdict v-ok';vd.textContent='買い推奨 — 収益性・安全性ともに基準クリア';}
+  else if(gy>=5&&dcr>=1.0&&cf>0){vd.className='verdict v-warn';vd.textContent='要検討 — 条件次第で可。詳細精査を推奨';}
+  else{vd.className='verdict v-ng';vd.textContent='見送り — 収益性または安全性が基準未達';}
+  g('bres').style.display='block';
+  renderCF();
+}
+function renderCF(){
+  var p=+g('bp').value,r=+g('br').value,v=+g('bv').value||10,c=+g('bc').value;
+  var e=+g('be').value,rate=+g('brate').value||3,term=+g('bterm').value||25;
+  if(!p||!r)return;
+  var decay=(+g('cf-decay').value)||1;
+  var years=+g('cf-years').value||20;
+  var la=(p-e)*10000,mr=rate/100/12,mo=term*12;
+  var mp=la>0?la*(mr*Math.pow(1+mr,mo))/(Math.pow(1+mr,mo)-1):0;
+  var annualRepay=mp*12;
+
+  var rows=[],cumCF=0,totalRepay=0,breakeven=null;
+  var cfData=[],labels=[];
+  for(var yr=1;yr<=years;yr++){
+    var rentY=r*12*Math.pow(1-decay/100,yr-1);
+    var effY=rentY*(1-v/100);
+    var noiY=effY-c;
+    var repY=yr<=term?annualRepay:0;
+    var cfY=noiY*10000-repY;
+    cumCF+=cfY;
+    totalRepay+=repY;
+    if(breakeven===null&&cumCF>=0)breakeven=yr;
+    rows.push({yr,rentY:rentY*10000,repY,cfY,cumCF});
+    cfData.push(Math.round(cfY/10000));
+    labels.push(yr+'年');
+  }
+
+  // サマリー更新
+  var tcEl=g('cf-total-cf');
+  tcEl.textContent=(cumCF>=0?'+':'')+fmt(Math.abs(cumCF))+'円';
+  tcEl.style.color=cumCF>=0?'var(--sage)':'var(--danger)';
+  g('cf-total-repay').textContent=fmt(totalRepay)+'円';
+  var beEl=g('cf-breakeven');
+  if(breakeven){beEl.textContent=breakeven+'年目';beEl.style.color='var(--sage)';}
+  else{beEl.textContent='期間内なし';beEl.style.color='var(--danger)';}
+
+  // テーブル更新
+  g('cf-tbody').innerHTML=rows.map(row=>{
+    var isNeg=row.cfY<0;
+    var isHighlight=row.yr%5===0;
+    return `<tr style="border-bottom:0.5px solid var(--border);${isHighlight?'background:var(--surface);':''}">
+      <td style="padding:5px 4px;font-weight:${isHighlight?600:400};">${row.yr}年目</td>
+      <td style="padding:5px 4px;text-align:right;font-family:'DM Mono',monospace;">${fmt(row.rentY)}円</td>
+      <td style="padding:5px 4px;text-align:right;font-family:'DM Mono',monospace;">${fmt(row.repY)}円</td>
+      <td style="padding:5px 4px;text-align:right;font-family:'DM Mono',monospace;color:${isNeg?'var(--danger)':'var(--sage)'};">${isNeg?'-':'+'}${fmt(Math.abs(row.cfY))}円</td>
+      <td style="padding:5px 4px;text-align:right;font-family:'DM Mono',monospace;color:${row.cumCF<0?'var(--danger)':'var(--sage)'};">${row.cumCF<0?'-':'+'}${fmt(Math.abs(row.cumCF))}円</td>
+    </tr>`;
+  }).join('');
+
+  // グラフ描画
+  var wrap=g('cf-chart-wrap');
+  var canvas=g('cf-canvas');
+  if(!canvas)return;
+  var W=wrap.clientWidth||300,H=160;
+  canvas.width=W*2;canvas.height=H*2;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  var ctx=canvas.getContext('2d');
+  ctx.scale(2,2);
+  ctx.clearRect(0,0,W,H);
+
+  var pad={t:16,r:8,b:28,l:48};
+  var gw=W-pad.l-pad.r,gh=H-pad.t-pad.b;
+  var max=Math.max(...cfData,0),min=Math.min(...cfData,0);
+  var range=max-min||1;
+  var zeroY=pad.t+gh*(max/range);
+
+  // グリッド線
+  ctx.strokeStyle='rgba(0,0,0,.06)';ctx.lineWidth=.5;
+  for(var i=0;i<=4;i++){
+    var gy2=pad.t+gh*(i/4);
+    ctx.beginPath();ctx.moveTo(pad.l,gy2);ctx.lineTo(pad.l+gw,gy2);ctx.stroke();
+  }
+
+  // ゼロライン
+  ctx.strokeStyle='rgba(0,0,0,.2)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pad.l,zeroY);ctx.lineTo(pad.l+gw,zeroY);ctx.stroke();
+
+  // バー描画
+  var bw=Math.max(2,gw/cfData.length-2);
+  cfData.forEach(function(v2,i2){
+    var x=pad.l+i2*(gw/cfData.length)+((gw/cfData.length)-bw)/2;
+    var barH=Math.abs(v2/range)*gh;
+    var y=v2>=0?zeroY-barH:zeroY;
+    ctx.fillStyle=v2>=0?'rgba(45,94,66,.75)':'rgba(192,57,43,.7)';
+    ctx.fillRect(x,y,bw,barH);
+  });
+
+  // X軸ラベル（5年ごと）
+  ctx.fillStyle='rgba(0,0,0,.4)';ctx.font='9px DM Sans,sans-serif';ctx.textAlign='center';
+  labels.forEach(function(lb,i2){
+    var yr2=i2+1;
+    if(yr2===1||yr2%5===0||yr2===years){
+      var x=pad.l+i2*(gw/cfData.length)+(gw/cfData.length)/2;
+      ctx.fillText(lb,x,H-pad.b+10);
+    }
+  });
+
+  // Y軸ラベル
+  ctx.textAlign='right';
+  [max,0,min].forEach(function(val){
+    if(val===0&&max===0&&min===0)return;
+    var y=pad.t+gh*((max-val)/range)+4;
+    ctx.fillText((val>=0?'+':'')+val+'万',pad.l-4,y);
+  });
+}
+
+async function saveBuy(){
+  var p=g('bp').value;if(!p){toast('先に判定してください');return;}
+  S.buy.push({name:g('bname').value||'未入力',price:p,gross:g('r0').textContent,cf:g('r2').textContent,verdict:g('verd').textContent,who:g('bwho').value,date:new Date().toLocaleDateString('ja-JP'),id:Date.now()});
+  await ssave(KEYS.buy,S.buy);renderBuy();renderDash();toast('保存しました');
+}
+function renderBuy(){
+  if(!S.buy.length){g('bhist-wrap').style.display='none';return;}
+  g('bhist-wrap').style.display='block';
+  g('bhist').innerHTML=S.buy.map(b=>`
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div style="font-size:15px;font-weight:600;font-family:'Cormorant Garamond',serif;">${b.name}</div>
+        <button class="btn-danger-soft" onclick="delBuy(${b.id})">削除</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <span class="badge ${b.verdict.includes('買い')?'b-sage':b.verdict.includes('要検討')?'b-gold':'b-danger'}">${b.verdict.includes('買い')?'買い推奨':b.verdict.includes('要検討')?'要検討':'見送り'}</span>
+        <span class="badge b-mist">${b.price}万円</span>
+        <span class="badge b-mist">表面 ${b.gross}</span>
+        <span class="badge b-mist">CF ${b.cf}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);">${b.date} ／ ${b.who||'—'}が記録</div>
+    </div>`).join('');
+}
+async function delBuy(id){S.buy=S.buy.filter(b=>b.id!==id);await ssave(KEYS.buy,S.buy);renderBuy();renderDash();toast('削除しました');}
+
+// ── FINANCE ──
+async function addInc(){
+  var a=+g('fia').value;if(!a){toast('金額を入力してください');return;}
+  S.fin.push({t:'inc',m:g('fim').value,cat:g('fic').value,prop:g('fip').value||'—',amount:a,user:g('fiu').value,id:Date.now()});
+  await ssave(KEYS.fin,S.fin);g('fia').value='';renderFin();renderDash();toast('収入を追加しました');
+}
+async function addExp(){
+  var a=+g('fea').value;if(!a){toast('金額を入力してください');return;}
+  S.fin.push({t:'exp',m:g('fem').value,cat:g('fec').value,prop:g('fep').value||'—',amount:a,user:g('feu').value,id:Date.now()});
+  await ssave(KEYS.fin,S.fin);g('fea').value='';renderFin();renderDash();toast('支出を追加しました');
+}
+async function delFin(id){S.fin=S.fin.filter(f=>f.id!==id);await ssave(KEYS.fin,S.fin);renderFin();renderDash();toast('削除しました');}
+function renderFin(){
+  var inc=S.fin.filter(f=>f.t==='inc').reduce((s,f)=>s+f.amount,0);
+  var exp=S.fin.filter(f=>f.t==='exp').reduce((s,f)=>s+f.amount,0);var cf=inc-exp;
+  g('fi0').textContent=fmt(inc)+'円';g('fi1').textContent=fmt(exp)+'円';
+  var el=g('fi2');el.textContent=(cf>=0?'+':'')+fmt(cf)+'円';el.className='met-v '+(cf>=0?'g':'r');
+  g('fi3').textContent=(cf*12>=0?'+':'')+fmt(cf*12)+'円';
+  if(!S.fin.length){g('fin-empty').style.display='block';g('fin-list').style.display='none';return;}
+  g('fin-empty').style.display='none';g('fin-list').style.display='block';
+  var sorted=[...S.fin].sort((a,b)=>b.m.localeCompare(a.m));
+  g('fin-body').innerHTML=sorted.map(f=>`
+    <div class="list-item">
+      <div class="li-row">
+        <div><span class="badge ${f.t==='inc'?'b-sage':'b-danger'}">${f.t==='inc'?'収入':'支出'}</span> <span style="font-size:11px;color:var(--text-muted);margin-left:4px;">${f.m}</span></div>
+        <button class="btn-danger-soft" onclick="delFin(${f.id})">削除</button>
+      </div>
+      <div class="li-row" style="margin-top:4px;">
+        <div><div class="li-sub">${f.cat} ／ ${f.prop}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${f.user||'—'}が記録</div></div>
+        <div class="li-amount ${f.t==='inc'?'inc':'exp'}">${f.t==='inc'?'+':'-'}${fmt(f.amount)}円</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── LOAN ──
+async function addLoan(){
+  var a=+g('lam').value;if(!a){toast('借入金額を入力してください');return;}
+  var rate=+g('lra').value||3,term=+g('lte').value||25;
+  var mr=rate/100/12,mo=term*12,la=a*10000;
+  var mp=Math.round(la*(mr*Math.pow(1+mr,mo))/(Math.pow(1+mr,mo)-1));
+  S.loan.push({name:g('lna').value||'未入力',bank:g('lba').value,amount:a,rate:rate,term:term,owner:g('low').value,monthly:mp,remaining:a*10000,id:Date.now()});
+  await ssave(KEYS.loan,S.loan);g('lna').value='';g('lam').value='';renderLoan();renderDash();toast('融資情報を追加しました');
+}
+async function delLoan(id){S.loan=S.loan.filter(l=>l.id!==id);await ssave(KEYS.loan,S.loan);renderLoan();renderDash();toast('削除しました');}
+function renderLoan(){
+  var tr=S.loan.reduce((s,l)=>s+l.remaining,0);var tm=S.loan.reduce((s,l)=>s+l.monthly,0);
+  g('lo0').textContent=fmt(tr)+'円';g('lo1').textContent=fmt(tm)+'円';
+  g('lo2').textContent=fmt(tm*12)+'円';g('lo3').textContent=S.loan.length+'件';
+  if(!S.loan.length){g('loan-empty').style.display='block';g('loan-list').style.display='none';return;}
+  g('loan-empty').style.display='none';g('loan-list').style.display='block';
+  g('loan-body').innerHTML=S.loan.map(l=>`
+    <div class="loan-card">
+      <div class="loan-top">
+        <div>
+          <div class="loan-name">${l.name}</div>
+          <div class="loan-bank">${l.bank} ／ <span class="badge b-mist">${l.owner}</span></div>
+        </div>
+        <button class="btn-danger-soft" onclick="delLoan(${l.id})">削除</button>
+      </div>
+      <div class="loan-stats">
+        <div><div class="loan-stat-l">借入額</div><div class="loan-stat-v">${fmt(l.amount*10000)}円</div></div>
+        <div><div class="loan-stat-l">月返済</div><div class="loan-stat-v" style="color:var(--danger);">${fmt(l.monthly)}円</div></div>
+        <div><div class="loan-stat-l">金利／期間</div><div class="loan-stat-v">${l.rate}%／${l.term}年</div></div>
+      </div>
+    </div>`).join('');
+}
+
+// ── PORTFOLIO ──
+async function addProp(){
+  var pr=+g('ppr').value;if(!pr){toast('取得価格を入力してください');return;}
+  S.prop.push({name:g('pna').value||'未入力',addr:g('pad').value||'—',type:g('pty').value,owner:g('pow').value,price:pr,value:+g('pva').value||pr,units:+g('pun').value||0,occ:+g('poc').value||0,rent:+g('pre').value||0,date:g('pdt').value,id:Date.now()});
+  await ssave(KEYS.prop,S.prop);g('pna').value='';g('pad').value='';g('ppr').value='';g('pva').value='';renderPort();renderDash();toast('物件を追加しました');
+}
+async function delProp(id){S.prop=S.prop.filter(p=>p.id!==id);await ssave(KEYS.prop,S.prop);renderPort();renderDash();toast('削除しました');}
+function renderPort(){
+  var tc=S.prop.reduce((s,p)=>s+p.units,0);
+  var tr=S.prop.reduce((s,p)=>s+p.rent,0)*12*10000;
+  var tv=S.prop.reduce((s,p)=>s+p.value,0)*10000;
+  g('po0').textContent=S.prop.length+'棟';g('po1').textContent=tc+'戸';
+  g('po2').textContent=fmt(tr)+'円';g('po3').textContent=fmt(tv)+'円';
+  if(!S.prop.length){g('port-empty').style.display='block';g('port-list').style.display='none';return;}
+  g('port-empty').style.display='none';g('port-list').style.display='block';
+  g('port-body').innerHTML=S.prop.map(p=>{
+    var occ=p.units>0?Math.round((p.occ/p.units)*100):0;
+    var gy=p.price>0?((p.rent*12)/p.price*100).toFixed(2):'—';
+    var gain=(p.value-p.price)*10000;
+    return `<div class="prop-card">
+      <div class="prop-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div class="prop-header-name">${p.name}</div>
+            <div class="prop-header-addr">📍 ${p.addr}</div>
+          </div>
+          <button class="btn-danger-soft" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.15);" onclick="delProp(${p.id})">削除</button>
+        </div>
+        <div style="display:flex;gap:5px;margin-top:10px;flex-wrap:wrap;">
+          <span class="badge b-ink">${p.type}</span>
+          <span class="badge ${p.owner==='アスミット株式会社'?'b-gold':'b-sage'}">${p.owner==='アスミット株式会社'?'法人':'個人'}</span>
+          <span class="badge b-ink">${p.date}</span>
+        </div>
+      </div>
+      <div class="prop-body">
+        <div class="prop-stats">
+          <div><div class="prop-stat-l">取得価格</div><div class="prop-stat-v">${fmt(p.price*10000)}円</div></div>
+          <div><div class="prop-stat-l">現在評価額</div><div class="prop-stat-v ${gain>=0?'g':'r'}">${fmt(p.value*10000)}円</div></div>
+          <div><div class="prop-stat-l">表面利回り</div><div class="prop-stat-v a">${gy}%</div></div>
+          <div><div class="prop-stat-l">月額賃料</div><div class="prop-stat-v">${p.rent}万円</div></div>
+        </div>
+        <div class="occ-bar-wrap"><span>入居率</span><span style="font-weight:600;">${p.occ}/${p.units}戸（${occ}%）</span></div>
+        <div class="occ-bar"><div class="occ-fill" style="width:${occ}%;background:${occ>=90?'var(--sage)':occ>=70?'var(--gold)':'var(--danger)'};"></div></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);">
+          含み損益：<span style="font-weight:600;color:${gain>=0?'var(--sage)':'var(--danger)'};">${gain>=0?'+':''}${fmt(gain)}円</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+</script>
+
+<script>
+// GAS版追加処理
+var syncInd = document.getElementById('sync-ind');
+
+// データ同期インジケーター
+var origSsave = ssave;
+window.ssave = async function(key, data){
+  syncInd.style.display='block';
+  syncInd.className='sync-indicator sync-ok';
+  syncInd.textContent='同期中...';
+  await origSsave(key, data);
+  syncInd.textContent='✓ 同期完了';
+  setTimeout(()=>syncInd.style.display='none', 2000);
+};
+
+// ローディング非表示
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    var lo = document.getElementById('loading');
+    if(lo) lo.classList.add('hide');
+  }, 500);
+});
+
+// GAS POST対応（GASはCORSのためフォーム送信方式も使用）
+async function gasPost(key, value){
+  if(!GAS_URL) return;
+  try{
+    var form = new FormData();
+    form.append('action','set');
+    form.append('key', key);
+    form.append('value', value);
+    await fetch(GAS_URL, {method:'POST', body: form});
+  }catch(e){}
+}
+</script>
+</body>
+</html>
