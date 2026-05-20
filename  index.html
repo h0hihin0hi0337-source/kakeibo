@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="家計簿">
+<title>家計簿</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+/* ★★★ ここにApps ScriptのデプロイURLを入力 ★★★ */
+/* index.htmlを開いてすぐ下のGAS_URLを書き換えてください */
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f9fa;--card:#fff;--border:#e5e7eb;--text:#111827;--muted:#6b7280;
+  --green:#1D9E75;--red:#D85A30;--blue:#378ADD;--purple:#534AB7;--navy:#185FA5;
+}
+body{font-family:'Helvetica Neue',sans-serif;font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#0f4c75,#1b6ca8 50%,#1d9e75);transition:opacity .5s}
+#splash.hide{opacity:0;pointer-events:none}
+.splash-icon{width:110px;height:110px;margin-bottom:18px;animation:bob 1s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-8px)}}
+.splash-title{color:#fff;font-size:26px;font-weight:700;margin-bottom:5px}
+.splash-sub{color:rgba(255,255,255,.75);font-size:13px}
+.splash-dots{display:flex;gap:8px;margin-top:20px}
+.splash-dots span{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.5);animation:dp 1.2s ease-in-out infinite}
+.splash-dots span:nth-child(2){animation-delay:.2s}.splash-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+
+/* LAYOUT */
+.app{max-width:680px;margin:0 auto;padding:12px 12px 40px}
+
+/* SYNC BAR */
+.sync-bar{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.sync-status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0}
+.sync-dot.ok{background:var(--green)}.sync-dot.err{background:var(--red)}.sync-dot.loading{background:#f59e0b;animation:pulse .8s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:.4}to{opacity:1}}
+.sync-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:12px;color:var(--text);display:flex;align-items:center;gap:4px}
+.sync-btn:hover{background:#e5e7eb}
+.url-setup{display:flex;align-items:center;gap:6px;width:100%}
+.url-setup input{flex:1;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;outline:none}
+.url-setup input:focus{border-color:var(--blue)}
+.url-setup button{padding:5px 10px;border-radius:6px;border:none;background:var(--blue);color:#fff;font-size:12px;cursor:pointer}
+
+/* MONTH NAV */
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.mnav-left{display:flex;align-items:center;gap:8px}
+.mnav-btn{background:none;border:1px solid var(--border);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:16px;line-height:1;color:var(--muted)}
+.mnav-btn:hover{background:#e5e7eb}
+.month-title{font-size:17px;font-weight:600;color:var(--text)}
+.month-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.cd-badge{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 14px;text-align:center}
+.cd-label{font-size:10px;color:var(--muted)}
+.cd-days{font-size:20px;font-weight:600;color:var(--purple);line-height:1.1}
+.cd-date{font-size:10px;color:var(--muted)}
+
+/* HERO */
+.balance-hero{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--purple);border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.bh-label{font-size:11px;color:var(--muted);margin-bottom:3px}
+.bh-amount{font-size:36px;font-weight:600;color:var(--purple);line-height:1;letter-spacing:-.5px}
+.bh-amount.pos{color:var(--green)}.bh-amount.neg{color:var(--red)}
+.bh-right{display:flex;gap:16px;flex-wrap:wrap}
+.bh-sub .sl{font-size:10px;color:var(--muted);margin-bottom:1px}
+.bh-sub .sv{font-size:13px;font-weight:600}
+
+/* TABS */
+.view-tabs{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.vtab{padding:7px 13px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:12px;font-weight:500;color:var(--muted)}
+.vtab.active{background:var(--text);color:#fff;border-color:var(--text)}
+.view{display:none}.view.active{display:block}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.card-title{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.card-title i{font-size:14px}
+
+/* SALARY */
+.sal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sal-label{font-size:12px;color:var(--muted);margin-bottom:4px}
+.sal-wrap{display:flex;align-items:center;gap:5px}
+.sal-wrap span{font-size:13px;color:var(--muted)}
+.sal-wrap input{flex:1;font-size:15px;font-weight:600;color:var(--green);padding:7px 8px;border:1px solid var(--border);border-radius:7px;background:var(--bg);outline:none}
+.sal-wrap input:focus{border-color:var(--blue)}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}
+.mc{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
+.mc .ml{font-size:10px;color:var(--muted);margin-bottom:4px}
+.mc .mv{font-size:14px;font-weight:600}
+.ci{color:var(--green)}.ce{color:var(--red)}.ca{color:var(--navy)}
+
+/* FIXED 2COL */
+.fixed-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.save-accent{border-top:3px solid var(--green)}
+.expense-accent{border-top:3px solid var(--red)}
+.ft{width:100%;border-collapse:collapse}
+.ft tr{border-bottom:1px solid var(--border)}
+.ft tr:last-child{border-bottom:none}
+.ft td{padding:5px 3px;vertical-align:middle}
+.ft td:last-child{text-align:right}
+.pill{font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600;white-space:nowrap}
+.p-save{background:#E6F1FB;color:#0C447C}.p-fix{background:#E1F5EE;color:#0F6E56}
+.p-sub{background:#FAEEDA;color:#633806}.p-oth{background:#F1EFE8;color:#444441}
+.fname{color:var(--text);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.fdate{color:var(--muted);font-size:10px;min-width:24px}
+.famt{font-weight:600;color:var(--text);font-size:12px}
+.famt.cut{color:var(--muted);text-decoration:line-through}
+.cut-row td{opacity:.4}
+.cbtn{font-size:10px;padding:2px 6px;border-radius:5px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--muted);white-space:nowrap}
+.cbtn.on{background:#FAECE7;color:#993C1D;border-color:#F0997B}
+.ft-foot td{font-size:12px;font-weight:600;padding-top:7px;border-top:1px solid var(--border)!important}
+
+/* CHART */
+.ctabs{display:flex;gap:5px;margin-bottom:8px}
+.ctab{padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:11px;color:var(--muted)}
+.ctab.active{background:var(--text);color:#fff;border-color:var(--text)}
+.leg{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--muted);margin-bottom:6px}
+.li{display:flex;align-items:center;gap:3px}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* BUDGET */
+.budget-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.bcard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.bp-label{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.bp-label i{font-size:14px}
+.bp-remain{font-size:17px;font-weight:600;margin-bottom:2px}
+.bp-sub{font-size:10px;color:var(--muted);margin-bottom:5px}
+.bar-w{height:7px;background:var(--bg);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:7px}
+.bar-f{height:100%;border-radius:4px;transition:width .4s}
+.bok{background:var(--green)}.bwarn{background:#EF9F27}.bover{background:var(--red)}
+.rok{color:var(--green)}.rwarn{color:#BA7517}.rover{color:var(--red)}
+.lim-r{display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.lim-r label{font-size:10px;color:var(--muted);white-space:nowrap}
+.lim-r input{width:85px;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);outline:none}
+.elist-s{display:flex;flex-direction:column;gap:3px;max-height:100px;overflow-y:auto;margin-bottom:6px}
+.er{display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:6px;background:var(--bg);font-size:11px}
+.er .en{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.er .ed{color:var(--muted);font-size:10px;min-width:26px}
+.er .ea{font-weight:600;color:var(--red);min-width:52px;text-align:right}
+.edel{background:none;border:none;cursor:pointer;color:#ccc;font-size:11px;padding:1px 3px;border-radius:3px}
+.edel:hover{color:var(--red)}
+.add-r{display:flex;gap:4px;flex-wrap:wrap}
+.add-r input{flex:1;min-width:52px;font-size:12px;padding:5px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg);outline:none}
+.add-r input:focus{border-color:var(--blue)}
+.abtn{padding:5px 9px;border-radius:6px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.abtn:hover{background:var(--navy)}
+.empty-s{font-size:11px;color:var(--muted);padding:4px 0}
+
+/* FLOW */
+#view-flow{background:#eef7ff;border-radius:12px;padding:10px;margin-bottom:10px;overflow-x:auto}
+#flowCanvas{display:block;margin:0 auto;border-radius:8px}
+.flow-note{font-size:11px;color:var(--muted);text-align:center;margin-top:6px}
+
+/* DETAIL */
+.det-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.ds-card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 12px}
+.ds-lbl{font-size:10px;color:var(--muted);margin-bottom:3px}
+.ds-val{font-size:18px;font-weight:600}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.fbtn{padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:12px;color:var(--muted)}
+.fbtn.active{background:var(--text);color:#fff;border-color:var(--text)}
+.dtw{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.dtbl{width:100%;border-collapse:collapse}
+.dtbl thead th{padding:8px 12px;font-size:11px;font-weight:600;color:var(--muted);text-align:left;background:var(--bg);border-bottom:1px solid var(--border)}
+.dtbl tbody tr{border-bottom:1px solid var(--border)}
+.dtbl tbody tr:last-child{border-bottom:none}
+.dtbl tbody tr:hover{background:var(--bg)}
+.dtbl tbody td{padding:8px 12px;font-size:13px;vertical-align:middle}
+.dc{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.c-cash{background:#EEF2FF;color:#3730A3}.c-credit{background:#FCE7F3;color:#9D174D}.c-food{background:#FEF3C7;color:#92400E}
+.dt-amt{color:var(--red);font-weight:600;text-align:right}
+.dt-empty{text-align:center;padding:2rem;color:var(--muted);font-size:13px}
+
+/* SETUP GUIDE */
+.setup-guide{background:#fff8e1;border:1px solid #f59e0b;border-radius:12px;padding:16px;margin-bottom:10px}
+.setup-guide h3{font-size:14px;font-weight:600;color:#92400e;margin-bottom:8px}
+.setup-guide ol{padding-left:18px;font-size:13px;color:#78350f;line-height:2}
+.setup-guide code{background:#fef3c7;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:12px}
+
+@media(max-width:480px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .fixed-2col{grid-template-columns:1fr}
+  .budget-3{grid-template-columns:1fr}
+  .sal-grid{grid-template-columns:1fr}
+  .bh-right{gap:10px}
+}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <svg class="splash-icon" viewBox="0 0 120 120" fill="none">
+    <polygon points="60,10 100,75 20,75" fill="#2d6a8a" opacity=".9"/>
+    <polygon points="60,10 80,50 40,50" fill="#3d8ab8" opacity=".8"/>
+    <polygon points="60,10 72,35 48,35" fill="white" opacity=".9"/>
+    <path d="M60 75 Q55 85 50 90 Q45 95 48 105" stroke="#5bcbf5" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <ellipse cx="55" cy="108" rx="18" ry="8" fill="#1b6ca8" opacity=".7"/>
+    <ellipse cx="55" cy="107" rx="12" ry="5" fill="#5bcbf5" opacity=".5"/>
+    <circle cx="50" cy="100" r="4" fill="#f5c842" opacity=".9"/>
+    <circle cx="60" cy="104" r="3" fill="#f5c842" opacity=".8"/>
+    <circle cx="68" cy="99" r="3.5" fill="#f5c842" opacity=".7"/>
+  </svg>
+  <div class="splash-title">家計簿</div>
+  <div class="splash-sub">お金の流れを、見える化する</div>
+  <div class="splash-dots"><span></span><span></span><span></span></div>
+</div>
+
+<div class="app" id="app" style="opacity:0">
+
+<!-- URL設定 & 同期バー -->
+<div class="sync-bar" id="sync-bar">
+  <div class="sync-status">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span id="sync-text">スプレッドシートに接続中...</span>
+  </div>
+  <button class="sync-btn" onclick="manualSync()">
+    <i class="ti ti-refresh" style="font-size:13px"></i>同期
+  </button>
+</div>
+<div id="url-setup-area"></div>
+
+<!-- MONTH NAV -->
+<div class="month-nav">
+  <div class="mnav-left">
+    <button class="mnav-btn" onclick="changeMonth(-1)">&#8249;</button>
+    <div>
+      <div class="month-title" id="month-title">—</div>
+      <div class="month-sub" id="month-sub"></div>
+    </div>
+    <button class="mnav-btn" onclick="changeMonth(1)">&#8250;</button>
+  </div>
+  <div class="cd-badge">
+    <div class="cd-label">次の給料日まで</div>
+    <div class="cd-days" id="cd-days">—</div>
+    <div class="cd-date" id="cd-date"></div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="balance-hero">
+  <div>
+    <div class="bh-label">💰 今月の残高</div>
+    <div class="bh-amount" id="hero-bal">—</div>
+  </div>
+  <div class="bh-right">
+    <div class="bh-sub"><div class="sl">合計手取り</div><div class="sv ci" id="bh-income">—</div></div>
+    <div class="bh-sub"><div class="sl">貯蓄</div><div class="sv ca" id="bh-save">—</div></div>
+    <div class="bh-sub"><div class="sl">固定支出</div><div class="sv ce" id="bh-fixed">—</div></div>
+    <div class="bh-sub"><div class="sl">生活費</div><div class="sv ce" id="bh-life">—</div></div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="view-tabs">
+  <button class="vtab active" onclick="setView('dashboard')" id="vt-dashboard">📊 ダッシュボード</button>
+  <button class="vtab" onclick="setView('flow')" id="vt-flow">🌊 お金の流れ</button>
+  <button class="vtab" onclick="setView('detail')" id="vt-detail">📋 明細一覧</button>
+</div>
+
+<!-- DASHBOARD -->
+<div class="view active" id="view-dashboard">
+  <div class="card">
+    <div class="card-title">💴 今月の給料を入力</div>
+    <div class="sal-grid">
+      <div><div class="sal-label">真尚 給料</div><div class="sal-wrap"><span>¥</span><input type="number" id="sal-m" placeholder="385897" step="1000" oninput="updateSalary()"></div></div>
+      <div><div class="sal-label">有紀 給料</div><div class="sal-wrap"><span>¥</span><input type="number" id="sal-y" placeholder="170000" step="1000" oninput="updateSalary()"></div></div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="mc"><div class="ml">真尚 給料</div><div class="mv ci" id="mc-m">—</div></div>
+    <div class="mc"><div class="ml">有紀 給料</div><div class="mv ci" id="mc-y">—</div></div>
+    <div class="mc"><div class="ml">貯蓄（削減後）</div><div class="mv ca" id="mc-save">—</div></div>
+    <div class="mc"><div class="ml">固定支出（削減後）</div><div class="mv ce" id="mc-fixed">—</div></div>
+  </div>
+
+  <div class="fixed-2col">
+    <div class="card save-accent" style="margin-bottom:0">
+      <div class="card-title" style="color:#0F6E56">🐷 貯蓄<span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--muted)">削減後: <strong id="save-after" style="color:var(--green)">—</strong></span></div>
+      <div style="overflow-y:auto;max-height:280px"><table class="ft" id="save-table"></table></div>
+    </div>
+    <div class="card expense-accent" style="margin-bottom:0">
+      <div class="card-title" style="color:#993C1D">📄 固定支出<span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--muted)">削減後: <strong id="expense-after" style="color:var(--red)">—</strong></span></div>
+      <div style="overflow-y:auto;max-height:280px"><table class="ft" id="expense-table"></table></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:10px">
+    <div class="ctabs">
+      <button class="ctab active" onclick="setCTab('cat')" id="ct-cat">カテゴリ別</button>
+      <button class="ctab" onclick="setCTab('flow')" id="ct-flow">収支フロー</button>
+    </div>
+    <div class="leg" id="chart-legend"></div>
+    <div style="position:relative;width:100%;height:230px"><canvas id="mainChart" role="img" aria-label="収支グラフ"></canvas></div>
+  </div>
+
+  <div class="budget-3">
+    <div class="bcard" id="b-cash"></div>
+    <div class="bcard" id="b-credit"></div>
+    <div class="bcard" id="b-food"></div>
+  </div>
+</div>
+
+<!-- FLOW -->
+<div class="view" id="view-flow">
+  <canvas id="flowCanvas" width="640" height="520"></canvas>
+  <div class="flow-note">お金の流れをイメージで表示しています（アニメーション中）</div>
+</div>
+
+<!-- DETAIL -->
+<div class="view" id="view-detail">
+  <div class="det-summary">
+    <div class="ds-card"><div class="ds-lbl">💸 生活費合計</div><div class="ds-val ce" id="det-total">¥0</div></div>
+    <div class="ds-card"><div class="ds-lbl">📝 取引件数</div><div class="ds-val" id="det-count">0件</div></div>
+    <div class="ds-card"><div class="ds-lbl">📊 1件平均</div><div class="ds-val" id="det-avg">¥0</div></div>
+  </div>
+  <div class="filter-row">
+    <button class="fbtn active" onclick="setFilter('all')" id="fb-all">すべて</button>
+    <button class="fbtn" onclick="setFilter('cash')" id="fb-cash">現金</button>
+    <button class="fbtn" onclick="setFilter('credit')" id="fb-credit">クレジット</button>
+    <button class="fbtn" onclick="setFilter('food')" id="fb-food">食費</button>
+  </div>
+  <div class="dtw">
+    <table class="dtbl">
+      <thead><tr><th>日付</th><th>内容</th><th>区分</th><th style="text-align:right">金額</th><th></th></tr></thead>
+      <tbody id="detail-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- .app -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// ================================================================
+//  ★ 設定: Apps ScriptのデプロイURLをここに貼り付けてください ★
+// ================================================================
+let GAS_URL = localStorage.getItem('kb_gas_url') || '';
+
+// ================================================================
+const FIXED_SAVE=[
+  {id:'s1',date:'1日', name:'積立NISA（真）',amt:50000,label:'貯蓄'},
+  {id:'s2',date:'1日', name:'積立NISA（有）',amt:30000,label:'貯蓄'},
+  {id:'s3',date:'21日',name:'天寧 学資',      amt:10000,label:'貯蓄'},
+  {id:'s4',date:'21日',name:'現金貯金',       amt:20000,label:'貯蓄'},
+  {id:'s5',date:'21日',name:'令 学資',        amt:10000,label:'貯蓄'},
+  {id:'s6',date:'26日',name:'iDeCo',          amt:20000,label:'貯蓄'},
+  {id:'s7',date:'21日',name:'ディズニー積立', amt:0,    label:'貯蓄'},
+];
+const FIXED_EXP=[
+  {id:'e1', date:'27日',name:'家賃',          amt:62200,label:'固定費'},
+  {id:'e2', date:'27日',name:'上下水道',      amt:7000, label:'固定費'},
+  {id:'e3', date:'15日',name:'ガス',          amt:10000,label:'固定費'},
+  {id:'e4', date:'27日',name:'電気代',        amt:12489,label:'固定費'},
+  {id:'e5', date:'10日',name:'NHK',           amt:1225, label:'固定費'},
+  {id:'e6', date:'20日',name:'保育園',        amt:5900, label:'固定費'},
+  {id:'e7', date:'—',  name:'ママ携帯＆光',  amt:9800, label:'固定費'},
+  {id:'e8', date:'27日',name:'パパ携帯',      amt:3000, label:'固定費'},
+  {id:'e9', date:'10日',name:'富士火災①',    amt:2253, label:'固定費'},
+  {id:'e10',date:'10日',name:'富士火災②',    amt:1361, label:'固定費'},
+  {id:'e11',date:'10日',name:'YouTube',       amt:1480, label:'サブスク'},
+  {id:'e12',date:'27日',name:'Netflix',       amt:890,  label:'サブスク'},
+  {id:'e13',date:'27日',name:'日経新聞',      amt:4300, label:'サブスク'},
+  {id:'e14',date:'27日',name:'ストレージ',    amt:130,  label:'サブスク'},
+  {id:'e15',date:'—',  name:'マネーFW（年払）',amt:0,  label:'サブスク'},
+  {id:'e16',date:'21日',name:'頭髪',          amt:21600,label:'その他'},
+  {id:'e17',date:'27日',name:'アパ横月極P',   amt:5000, label:'その他'},
+  {id:'e18',date:'27日',name:'かびゅう',      amt:1180, label:'その他'},
+  {id:'e19',date:'27日',name:'職場駐車場',    amt:6500, label:'その他'},
+  {id:'e20',date:'26日',name:'天寧 公文',     amt:7480, label:'その他'},
+  {id:'e21',date:'26日',name:'令 公文',       amt:7480, label:'その他'},
+  {id:'e22',date:'—',  name:'学童',           amt:1800, label:'その他'},
+  {id:'e23',date:'15日',name:'灯油',          amt:0,    label:'その他'},
+];
+const LABEL_PILL={'貯蓄':'p-save','固定費':'p-fix','サブスク':'p-sub','その他':'p-oth'};
+const KEY_META={
+  cash:  {label:'現金',      cls:'c-cash',  icon:'ti-cash'},
+  credit:{label:'クレジット',cls:'c-credit',icon:'ti-credit-card'},
+  food:  {label:'食費',      cls:'c-food',  icon:'ti-tools-kitchen-2'},
+};
+
+// STATE
+function getTodayBM(){
+  const d=new Date();
+  if(d.getDate()>=21)return{year:d.getFullYear(),month:d.getMonth()+1};
+  const p=new Date(d.getFullYear(),d.getMonth()-1,1);
+  return{year:p.getFullYear(),month:p.getMonth()+1};
+}
+let currentBM=getTodayBM();
+let cutSet=new Set();
+let budgets={cash:10000,credit:70000,food:50000};
+let allMonthData={};
+let cTab='cat',currentView='dashboard',detailFilter='all',chartInst=null,flowAnim=null,flowT=0;
+
+function bmKey(bm){return bm.year+'-'+String(bm.month).padStart(2,'0')}
+function getMonthData(bm){
+  const k=bmKey(bm);
+  if(!allMonthData[k])allMonthData[k]={salary:{m:0,y:0},expenses:{cash:[],credit:[],food:[]}};
+  return allMonthData[k];
+}
+function fmt(n){return '¥'+Math.round(n).toLocaleString('ja-JP')}
+
+// ================================================================
+//  GOOGLE SHEETS SYNC
+// ================================================================
+function setSyncStatus(state, msg){
+  const dot=document.getElementById('sync-dot');
+  const txt=document.getElementById('sync-text');
+  dot.className='sync-dot '+state;
+  txt.textContent=msg;
+}
+
+function showUrlSetup(){
+  document.getElementById('url-setup-area').innerHTML=`
+    <div class="setup-guide">
+      <h3>⚙️ 初回設定：Apps Script URLを入力してください</h3>
+      <ol>
+        <li>Googleスプレッドシートを開く</li>
+        <li>メニュー「拡張機能」→「Apps Script」</li>
+        <li>コード.gsの内容を <code>① Apps Script コード</code> ファイルの中身に置き換え、<br>
+            <code>SHEET_ID</code> にスプレッドシートのIDを入力して保存</li>
+        <li>「デプロイ」→「新しいデプロイ」→ 種類「ウェブアプリ」<br>
+            アクセス権限：<code>全員</code> → デプロイ</li>
+        <li>表示されたURLをコピーして下に貼り付ける</li>
+      </ol>
+      <div class="url-setup">
+        <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/...">
+        <button onclick="saveGasUrl()">保存して接続</button>
+      </div>
+    </div>`;
+}
+
+function saveGasUrl(){
+  const url=document.getElementById('gas-url-input').value.trim();
+  if(!url||!url.startsWith('https://script.google.com')){
+    alert('正しいApps Script URLを入力してください');return;
+  }
+  GAS_URL=url;
+  localStorage.setItem('kb_gas_url',url);
+  document.getElementById('url-setup-area').innerHTML='';
+  loadFromSheets();
+}
+
+async function loadFromSheets(){
+  if(!GAS_URL){showUrlSetup();setSyncStatus('err','URLが未設定です');return;}
+  setSyncStatus('loading','読み込み中...');
+  try{
+    const url=GAS_URL+'?action=getAll&monthKey='+bmKey(currentBM);
+    const res=await fetch(url);
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+
+    // 受信データをstateに反映
+    const k=bmKey(currentBM);
+    if(!allMonthData[k])allMonthData[k]={salary:{m:0,y:0},expenses:{cash:[],credit:[],food:[]}};
+    allMonthData[k].salary=data.salary||{m:0,y:0};
+    allMonthData[k].expenses=data.expenses||{cash:[],credit:[],food:[]};
+    budgets=data.budgets||{cash:10000,credit:70000,food:50000};
+    cutSet=new Set(data.cuts||[]);
+
+    setSyncStatus('ok','同期済み '+(new Date().toLocaleTimeString('ja-JP')));
+    refreshAll();
+  }catch(e){
+    setSyncStatus('err','接続エラー: '+e.message);
+    // オフラインでも動くようにローカル復元
+    refreshAll();
+  }
+}
+
+async function pushToSheets(){
+  if(!GAS_URL)return;
+  setSyncStatus('loading','保存中...');
+  try{
+    const md=getMonthData(currentBM);
+    const bm=bmKey(currentBM);
+    await Promise.all([
+      gasPost({action:'saveExpenses',monthKey:bm,expenses:md.expenses}),
+      gasPost({action:'saveSalary',  monthKey:bm,salary:md.salary}),
+      gasPost({action:'saveBudgets', budgets}),
+      gasPost({action:'saveCuts',    cuts:[...cutSet]}),
+    ]);
+    setSyncStatus('ok','保存完了 '+(new Date().toLocaleTimeString('ja-JP')));
+  }catch(e){
+    setSyncStatus('err','保存エラー: '+e.message);
+  }
+}
+
+async function gasPost(body){
+  const res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify(body)});
+  const data=await res.json();
+  if(data.error)throw new Error(data.error);
+  return data;
+}
+
+function manualSync(){loadFromSheets();}
+
+// 入力後に自動でシートに保存（debounce 2秒）
+let pushTimer=null;
+function schedulePush(){
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushToSheets,2000);
+}
+
+// ================================================================
+//  MONTH NAV
+// ================================================================
+function calcPayday(year,month){
+  let d=new Date(year,month-1,21);
+  const dow=d.getDay();
+  if(dow===6)d=new Date(year,month-1,19);
+  else if(dow===0)d=new Date(year,month-1,20);
+  if(d.getDay()===0)d=new Date(d.getFullYear(),d.getMonth(),d.getDate()-2);
+  return d;
+}
+function updateMonthNav(){
+  const bm=currentBM;
+  const rYear=bm.year-2018;
+  document.getElementById('month-title').textContent='令和'+rYear+'年 '+bm.month+'月';
+  const nextM=bm.month===12?1:bm.month+1;
+  const nextY=bm.month===12?bm.year+1:bm.year;
+  document.getElementById('month-sub').textContent=bm.month+'/21〜'+nextY+'/'+nextM+'/20';
+  const payday=calcPayday(nextY,nextM);
+  const td=new Date();
+  const todayMid=new Date(td.getFullYear(),td.getMonth(),td.getDate());
+  const diff=Math.ceil((payday-todayMid)/86400000);
+  document.getElementById('cd-days').textContent=diff===0?'今日！':diff>=0?diff+'日':'—';
+  const pd=payday;
+  document.getElementById('cd-date').textContent=pd.getFullYear()+'/'+(pd.getMonth()+1)+'/'+pd.getDate();
+}
+function changeMonth(d){
+  let {year,month}=currentBM;
+  month+=d;
+  if(month>12){month=1;year++;}
+  else if(month<1){month=12;year--;}
+  currentBM={year,month};
+  loadFromSheets();
+}
+
+// ================================================================
+//  SALARY
+// ================================================================
+function updateSalary(){
+  const md=getMonthData(currentBM);
+  md.salary.m=parseInt(document.getElementById('sal-m').value)||0;
+  md.salary.y=parseInt(document.getElementById('sal-y').value)||0;
+  updateMetrics();renderChart();if(currentView==='flow')drawFlow();
+  schedulePush();
+}
+function initSalaryInputs(){
+  const md=getMonthData(currentBM);
+  document.getElementById('sal-m').value=md.salary.m||'';
+  document.getElementById('sal-y').value=md.salary.y||'';
+}
+
+// ================================================================
+//  FIXED
+// ================================================================
+function toggleCut(id){
+  cutSet.has(id)?cutSet.delete(id):cutSet.add(id);
+  renderFixed();updateMetrics();if(currentView==='dashboard')renderChart();if(currentView==='flow')drawFlow();
+  schedulePush();
+}
+function renderFixedTable(items,tId,aId,color){
+  const after=items.filter(f=>!cutSet.has(f.id)).reduce((s,f)=>s+f.amt,0);
+  document.getElementById(aId).textContent=fmt(after);
+  document.getElementById(tId).innerHTML=
+    items.map(f=>{
+      const c=cutSet.has(f.id);
+      return`<tr class="${c?'cut-row':''}">
+        <td><span class="pill ${LABEL_PILL[f.label]||'p-oth'}">${f.label}</span></td>
+        <td class="fdate">${f.date}</td><td class="fname">${f.name}</td>
+        <td class="famt${c?' cut':''}">${f.amt===0?'—':fmt(f.amt)}</td>
+        <td><button class="cbtn${c?' on':''}" onclick="toggleCut('${f.id}')">${c?'復活':'削減'}</button></td>
+      </tr>`;
+    }).join('')+
+    `<tr class="ft-foot"><td colspan="3">小計</td><td colspan="2" style="color:${color}">${fmt(after)}</td></tr>`;
+}
+function renderFixed(){
+  renderFixedTable(FIXED_SAVE,'save-table','save-after','#1D9E75');
+  renderFixedTable(FIXED_EXP,'expense-table','expense-after','#D85A30');
+}
+
+// ================================================================
+//  METRICS
+// ================================================================
+function getCalc(){
+  const md=getMonthData(currentBM);
+  const saveAfter=FIXED_SAVE.filter(f=>!cutSet.has(f.id)).reduce((s,f)=>s+f.amt,0);
+  const expAfter =FIXED_EXP.filter(f=>!cutSet.has(f.id)).reduce((s,f)=>s+f.amt,0);
+  const lifeExp  =Object.values(md.expenses).flat().reduce((s,e)=>s+e.amt,0);
+  const income   =(md.salary.m||0)+(md.salary.y||0);
+  return{saveAfter,expAfter,lifeExp,income,remain:income-saveAfter-expAfter-lifeExp,md};
+}
+function updateMetrics(){
+  const{saveAfter,expAfter,lifeExp,income,remain,md}=getCalc();
+  const h=document.getElementById('hero-bal');
+  h.textContent=income?fmt(remain):'給料を入力してください';
+  h.className='bh-amount'+(income?(remain>=0?' pos':' neg'):'');
+  document.getElementById('bh-income').textContent=income?fmt(income):'—';
+  document.getElementById('bh-save').textContent=fmt(saveAfter);
+  document.getElementById('bh-fixed').textContent=fmt(expAfter);
+  document.getElementById('bh-life').textContent=fmt(lifeExp);
+  document.getElementById('mc-m').textContent=md.salary.m?fmt(md.salary.m):'—';
+  document.getElementById('mc-y').textContent=md.salary.y?fmt(md.salary.y):'—';
+  document.getElementById('mc-save').textContent=fmt(saveAfter);
+  document.getElementById('mc-fixed').textContent=fmt(expAfter);
+}
+
+// ================================================================
+//  BUDGET
+// ================================================================
+function renderBudget(key,cid){
+  const md=getMonthData(currentBM);
+  const m=KEY_META[key];
+  const lim=budgets[key],spent=md.expenses[key].reduce((s,e)=>s+e.amt,0);
+  const rem=lim-spent,pct=lim>0?Math.min(spent/lim*100,100):0;
+  const bcls=pct<70?'ok':pct<90?'warn':'over';
+  const rcls=rem>=0?'rok':rem>=-lim*0.1?'rwarn':'rover';
+  document.getElementById(cid).innerHTML=`
+    <div class="bp-label"><i class="ti ${m.icon}"></i>${m.label}</div>
+    <div class="bp-remain ${rcls}">${fmt(rem)}</div>
+    <div class="bp-sub">使用 ${fmt(spent)} / 上限 ${fmt(lim)}</div>
+    <div class="bar-w"><div class="bar-f b${bcls}" style="width:${pct.toFixed(1)}%"></div></div>
+    <div class="lim-r"><label>上限</label><input type="number" value="${lim}" step="1000" onchange="setLim('${key}',this.value)"></div>
+    <div class="elist-s">${
+      md.expenses[key].length===0?'<div class="empty-s">支出なし</div>':
+      md.expenses[key].map((e,i)=>`<div class="er">
+        <span class="ed">${e.date}</span><span class="en">${e.name}</span>
+        <span class="ea">-${fmt(e.amt)}</span>
+        <button class="edel" onclick="delE('${key}',${i})"><i class="ti ti-x"></i></button>
+      </div>`).join('')
+    }</div>
+    <div class="add-r">
+      <input type="text" placeholder="内容" id="an-${key}">
+      <input type="number" placeholder="金額" id="aa-${key}" step="100">
+      <input type="date" id="ad-${key}" value="${new Date().toISOString().split('T')[0]}">
+      <button class="abtn" onclick="addE('${key}')">追加</button>
+    </div>`;
+}
+function renderBudgets(){['cash','credit','food'].forEach(k=>renderBudget(k,'b-'+k));}
+function setLim(key,v){budgets[key]=parseInt(v)||0;renderBudgets();updateMetrics();renderChart();schedulePush();}
+function addE(key){
+  const md=getMonthData(currentBM);
+  const name=document.getElementById('an-'+key).value.trim();
+  const amt=parseInt(document.getElementById('aa-'+key).value)||0;
+  const raw=document.getElementById('ad-'+key).value;
+  if(!name||!amt)return;
+  const d=new Date(raw);
+  md.expenses[key].push({name,amt,date:(d.getMonth()+1)+'/'+(d.getDate()),rawDate:raw});
+  renderBudgets();updateMetrics();renderChart();
+  if(currentView==='detail')renderDetail();
+  if(currentView==='flow')drawFlow();
+  schedulePush();
+}
+function delE(key,idx){
+  const md=getMonthData(currentBM);
+  md.expenses[key].splice(idx,1);
+  renderBudgets();updateMetrics();renderChart();
+  if(currentView==='detail')renderDetail();
+  if(currentView==='flow')drawFlow();
+  schedulePush();
+}
+
+// ================================================================
+//  CHART
+// ================================================================
+function setCTab(t){
+  cTab=t;
+  ['cat','flow'].forEach(x=>document.getElementById('ct-'+x).classList.toggle('active',x===t));
+  renderChart();
+}
+function renderChart(){
+  const canvas=document.getElementById('mainChart');
+  const legend=document.getElementById('chart-legend');
+  if(!canvas||!legend)return;
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  const{saveAfter,expAfter,income,remain,md}=getCalc();
+  const cashS=md.expenses.cash.reduce((s,e)=>s+e.amt,0);
+  const creditS=md.expenses.credit.reduce((s,e)=>s+e.amt,0);
+  const foodS=md.expenses.food.reduce((s,e)=>s+e.amt,0);
+  if(cTab==='cat'){
+    const labels=['貯蓄','固定支出','現金','クレカ','食費'];
+    const data=[saveAfter,expAfter,cashS,creditS,foodS];
+    const colors=['#1D9E75','#378ADD','#534AB7','#D4537E','#D85A30'];
+    legend.innerHTML=labels.map((l,i)=>`<span class="li"><span class="ld" style="background:${colors[i]}"></span>${l} ${fmt(data[i])}</span>`).join('');
+    chartInst=new Chart(canvas,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'transparent'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmt(ctx.raw)}}}}});
+  }else{
+    const allExp=cashS+creditS+foodS;
+    const labels=['手取り','貯蓄','固定支出','生活費','残高'];
+    const data=[income,-saveAfter,-expAfter,-allExp,remain];
+    const colors=['#1D9E75','#185FA5','#D85A30','#D85A30','#534AB7'];
+    legend.innerHTML=`<span class="li"><span class="ld" style="background:#1D9E75"></span>収入</span><span class="li"><span class="ld" style="background:#185FA5"></span>貯蓄</span><span class="li"><span class="ld" style="background:#D85A30"></span>支出</span><span class="li"><span class="ld" style="background:#534AB7"></span>残高</span>`;
+    chartInst=new Chart(canvas,{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(Math.abs(ctx.raw))}}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>'¥'+(Math.abs(v)/10000).toFixed(0)+'万'}}}}});
+  }
+}
+
+// ================================================================
+//  FLOW
+// ================================================================
+function drawFlow(){
+  const canvas=document.getElementById('flowCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=640,H=520;
+  canvas.width=W;canvas.height=H;
+  const{saveAfter,expAfter,md}=getCalc();
+  const cashS=md.expenses.cash.reduce((s,e)=>s+e.amt,0);
+  const creditS=md.expenses.credit.reduce((s,e)=>s+e.amt,0);
+  const foodS=md.expenses.food.reduce((s,e)=>s+e.amt,0);
+  const nisaAmt=(cutSet.has('s1')?0:50000)+(cutSet.has('s2')?0:30000);
+  const gakuAmt=(cutSet.has('s3')?0:10000)+(cutSet.has('s5')?0:10000);
+  const poolAmt=saveAfter-nisaAmt-gakuAmt;
+  const t=flowT;
+  ctx.clearRect(0,0,W,H);
+  const skyG=ctx.createLinearGradient(0,0,0,H*.45);
+  skyG.addColorStop(0,'#dbeeff');skyG.addColorStop(1,'#eef7ff');
+  ctx.fillStyle=skyG;ctx.fillRect(0,0,W,H*.45);
+  const gndG=ctx.createLinearGradient(0,H*.45,0,H);
+  gndG.addColorStop(0,'#c8e6a0');gndG.addColorStop(1,'#a8d080');
+  ctx.fillStyle=gndG;ctx.fillRect(0,H*.45,W,H*.55);
+  function drawMtn(cx,cy,w,h,c){
+    ctx.beginPath();ctx.moveTo(cx,cy-h);ctx.lineTo(cx+w/2,cy);ctx.lineTo(cx-w/2,cy);ctx.closePath();
+    ctx.fillStyle=c;ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx,cy-h);ctx.lineTo(cx+w*.2,cy-h*.6);ctx.lineTo(cx-w*.2,cy-h*.6);ctx.closePath();
+    ctx.fillStyle='#e8f4fd';ctx.fill();
+  }
+  drawMtn(320,195,160,140,'#4a7fa5');
+  ctx.fillStyle='#1a4e6e';ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+  ctx.fillText('給与収入',320,215);
+  function drawRiver(pts,w,color,alpha){
+    ctx.save();ctx.globalAlpha=alpha||1;
+    ctx.beginPath();
+    for(let i=0;i<pts.length;i++){const p=pts[i],wy=p.y+Math.sin(p.x*.3+t*.05)*2;i===0?ctx.moveTo(p.x-w/2,wy):ctx.lineTo(p.x-w/2,wy);}
+    for(let i=pts.length-1;i>=0;i--){const p=pts[i],wy=p.y+Math.sin(p.x*.3+t*.05+Math.PI)*2;ctx.lineTo(p.x+w/2,wy);}
+    ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.restore();
+  }
+  function drops(pts,color,n,off){
+    ctx.save();ctx.fillStyle=color;ctx.globalAlpha=.7;
+    for(let i=0;i<n;i++){
+      const prog=((t*.8+i*(60/n)+off)%60)/60;
+      const idx=Math.floor(prog*(pts.length-1));
+      const frac=prog*(pts.length-1)-idx;
+      if(idx>=pts.length-1)continue;
+      const px=pts[idx].x+(pts[idx+1].x-pts[idx].x)*frac;
+      const py=pts[idx].y+(pts[idx+1].y-pts[idx].y)*frac+Math.sin(px*.3+t*.05)*2;
+      ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);ctx.fill();
+    }ctx.restore();
+  }
+  const mainPts=[{x:310,y:200},{x:308,y:230},{x:305,y:265},{x:302,y:295}];
+  drawRiver(mainPts,18,'#5bc8f5',.85);drops(mainPts,'#fff',8,0);
+  const fX=302,fY=295;
+  const leftPts=[{x:fX,y:fY},{x:260,y:320},{x:220,y:355}];
+  drawRiver(leftPts,14,'#2ecc71',.8);drops(leftPts,'#fff',5,10);
+  const poolPts=[{x:220,y:355},{x:195,y:375},{x:170,y:400}];
+  drawRiver(poolPts,10,'#27ae60',.75);drops(poolPts,'#9ef5c0',4,0);
+  ctx.save();ctx.beginPath();ctx.ellipse(155,415,38,16,0,0,Math.PI*2);
+  const pg=ctx.createRadialGradient(140,408,4,155,415,38);pg.addColorStop(0,'#5ddef4');pg.addColorStop(1,'#1b6ca8');
+  ctx.fillStyle=pg;ctx.globalAlpha=.9;ctx.fill();
+  const rR=19+Math.sin(t*.08)*5;
+  ctx.beginPath();ctx.ellipse(155,415,rR,rR*.4,0,0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1.5;ctx.globalAlpha=.6;ctx.stroke();
+  ctx.globalAlpha=1;
+  for(let i=0;i<Math.min(Math.floor(poolAmt/10000)+1,6);i++){ctx.beginPath();ctx.ellipse(140+i*6,420,5,2.5,0,0,Math.PI*2);ctx.fillStyle='#f5c842';ctx.fill();ctx.strokeStyle='#d4a017';ctx.lineWidth=.5;ctx.stroke();}
+  ctx.restore();
+  ctx.fillStyle='#0a4d6e';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('貯蓄池',155,438);
+  ctx.font='10px sans-serif';ctx.fillStyle='#1b6ca8';ctx.fillText(fmt(poolAmt),155,450);
+  const nisaPts=[{x:220,y:355},{x:220,y:380},{x:222,y:405}];
+  drawRiver(nisaPts,8,'#16a085',.7);drops(nisaPts,'#aff0e0',3,5);
+  ctx.save();ctx.beginPath();ctx.moveTo(222,383);ctx.quadraticCurveTo(250,373,244,395);ctx.quadraticCurveTo(222,403,200,395);ctx.quadraticCurveTo(194,373,222,383);
+  ctx.fillStyle='#e74c3c';ctx.globalAlpha=.85;ctx.fill();ctx.strokeStyle='#c0392b';ctx.lineWidth=1;ctx.stroke();
+  ctx.beginPath();ctx.arc(222,383,5,0,Math.PI*2);ctx.fillStyle='#c0392b';ctx.globalAlpha=1;ctx.fill();
+  const coins2=Math.min(Math.floor(nisaAmt/20000)+1,5);
+  for(let i=0;i<coins2;i++){ctx.beginPath();ctx.arc(210+i*6,396,4,0,Math.PI*2);ctx.fillStyle='#f5c842';ctx.globalAlpha=.9;ctx.fill();ctx.strokeStyle='#d4a017';ctx.lineWidth=.5;ctx.stroke();}
+  ctx.fillStyle='#f5c842';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.globalAlpha=1;ctx.fillText('¥',236,392);
+  ctx.restore();
+  ctx.fillStyle='#0a4d3a';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('NISA',222,422);
+  ctx.font='10px sans-serif';ctx.fillStyle='#16a085';ctx.fillText(fmt(nisaAmt),222,434);
+  const gakuPts=[{x:220,y:355},{x:258,y:375},{x:272,y:405}];
+  drawRiver(gakuPts,8,'#8e44ad',.7);drops(gakuPts,'#d7a8f0',3,15);
+  ctx.save();ctx.globalAlpha=.9;
+  ctx.beginPath();ctx.roundRect(264,398,16,18,3);ctx.fillStyle='#8e44ad';ctx.fill();
+  ctx.beginPath();ctx.arc(272,393,8,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.6;ctx.beginPath();ctx.roundRect(278,388,10,14,2);ctx.fillStyle='#6c3483';ctx.fill();
+  ctx.beginPath();ctx.arc(283,383,6,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.8;ctx.fillStyle='#f39c12';ctx.font='bold 14px sans-serif';ctx.fillText('→',264,388);
+  const gc=Math.min(Math.floor(gakuAmt/5000)+1,4);
+  for(let i=0;i<gc;i++){ctx.beginPath();ctx.arc(262+i*6,420,4,0,Math.PI*2);ctx.fillStyle='#f5c842';ctx.globalAlpha=.9;ctx.fill();ctx.strokeStyle='#d4a017';ctx.lineWidth=.5;ctx.stroke();}
+  ctx.restore();
+  ctx.fillStyle='#5b2c6f';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('学資保険',272,440);
+  ctx.font='10px sans-serif';ctx.fillStyle='#8e44ad';ctx.fillText(fmt(gakuAmt),272,452);
+  const rightPts=[{x:fX,y:fY},{x:355,y:320},{x:390,y:355}];
+  drawRiver(rightPts,16,'#e67e22',.75);drops(rightPts,'#ffe0a0',5,20);
+  const fixedPts=[{x:390,y:355},{x:440,y:370},{x:490,y:368},{x:540,y:365},{x:600,y:363}];
+  drawRiver(fixedPts,12,'#e74c3c',.7);drops(fixedPts,'#ffb0b0',6,5);
+  ctx.fillStyle='#922b21';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('固定支出',540,355);
+  ctx.font='10px sans-serif';ctx.fillStyle='#c0392b';ctx.fillText(fmt(expAfter),540,378);
+  const lBX=390,lBY=355;
+  const cashPts=[{x:lBX,y:lBY},{x:lBX-20,y:400},{x:lBX-18,y:450},{x:lBX-15,y:510}];
+  drawRiver(cashPts,9,'#2980b9',.75);drops(cashPts,'#aed6f1',4,0);
+  ctx.fillStyle='#1a5276';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('現金',lBX-16,505);
+  ctx.font='10px sans-serif';ctx.fillStyle='#2980b9';ctx.fillText(fmt(cashS),lBX-16,517);
+  const crPts=[{x:lBX,y:lBY},{x:lBX+12,y:398},{x:lBX+12,y:448},{x:lBX+14,y:508}];
+  drawRiver(crPts,9,'#8e44ad',.75);drops(crPts,'#d7bde2',4,10);
+  ctx.fillStyle='#5b2c6f';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('クレカ',lBX+14,503);
+  ctx.font='10px sans-serif';ctx.fillStyle='#8e44ad';ctx.fillText(fmt(creditS),lBX+14,515);
+  const foodPts=[{x:lBX,y:lBY},{x:lBX+42,y:395},{x:lBX+44,y:445},{x:lBX+46,y:505}];
+  drawRiver(foodPts,9,'#d35400',.75);drops(foodPts,'#fad7a0',4,20);
+  ctx.fillStyle='#784212';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('食費',lBX+46,500);
+  ctx.font='10px sans-serif';ctx.fillStyle='#d35400';ctx.fillText(fmt(foodS),lBX+46,512);
+  function cloud(cx,cy,s){
+    ctx.save();ctx.globalAlpha=.7;ctx.fillStyle='#fff';
+    [[0,0,20],[18,-8,15],[-18,-8,15],[0,-14,12],[20,-5,10],[-20,-5,10]].forEach(([dx,dy,r])=>{ctx.beginPath();ctx.arc(cx+dx*s,cy+dy*s,r*s,0,Math.PI*2);ctx.fill();});
+    ctx.restore();
+  }
+  cloud(80,50,.8);cloud(500,40,.7);cloud(240,35,.6);
+  ctx.fillStyle='#1a3a4a';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('お金の川の流れ',320,22);
+}
+function startFlow(){if(flowAnim)cancelAnimationFrame(flowAnim);function lp(){flowT++;drawFlow();flowAnim=requestAnimationFrame(lp);}lp();}
+function stopFlow(){if(flowAnim){cancelAnimationFrame(flowAnim);flowAnim=null;}}
+
+// ================================================================
+//  DETAIL
+// ================================================================
+function setFilter(f){
+  detailFilter=f;
+  ['all','cash','credit','food'].forEach(x=>document.getElementById('fb-'+x).classList.toggle('active',x===f));
+  renderDetail();
+}
+function renderDetail(){
+  const md=getMonthData(currentBM);let all=[];
+  Object.keys(md.expenses).forEach(key=>{md.expenses[key].forEach((e,i)=>all.push({...e,key,idx:i,keyLabel:KEY_META[key].label,keyCls:KEY_META[key].cls}));});
+  const filtered=detailFilter==='all'?all:all.filter(e=>e.key===detailFilter);
+  filtered.sort((a,b)=>a.rawDate&&b.rawDate?new Date(b.rawDate)-new Date(a.rawDate):(b.rawDate||'').localeCompare(a.rawDate||''));
+  const total=filtered.reduce((s,e)=>s+e.amt,0);
+  document.getElementById('det-total').textContent=fmt(total);
+  document.getElementById('det-count').textContent=filtered.length+'件';
+  document.getElementById('det-avg').textContent=fmt(filtered.length?Math.round(total/filtered.length):0);
+  const tbody=document.getElementById('detail-tbody');
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="5" class="dt-empty">取引がありません</td></tr>`;return;}
+  tbody.innerHTML=filtered.map(e=>`<tr>
+    <td style="color:#6b7280;font-size:12px;white-space:nowrap">${e.date}</td>
+    <td style="font-weight:600">${e.name}</td>
+    <td><span class="dc ${e.keyCls}">${e.keyLabel}</span></td>
+    <td class="dt-amt">-${fmt(e.amt)}</td>
+    <td><button class="edel" onclick="delE('${e.key}',${e.idx})"><i class="ti ti-trash" style="font-size:13px"></i></button></td>
+  </tr>`).join('');
+}
+
+// ================================================================
+//  VIEW
+// ================================================================
+function setView(v){
+  currentView=v;
+  ['dashboard','flow','detail'].forEach(x=>{
+    document.getElementById('view-'+x).classList.toggle('active',x===v);
+    document.getElementById('vt-'+x).classList.toggle('active',x===v);
+  });
+  if(v==='flow')startFlow(); else stopFlow();
+  if(v==='dashboard')setTimeout(renderChart,50);
+  if(v==='detail')renderDetail();
+}
+
+function refreshAll(){
+  updateMonthNav();initSalaryInputs();renderFixed();renderBudgets();updateMetrics();
+  if(currentView==='dashboard')renderChart();
+  if(currentView==='flow')drawFlow();
+  if(currentView==='detail')renderDetail();
+}
+
+// ================================================================
+//  INIT
+// ================================================================
+setTimeout(()=>{
+  document.getElementById('splash').classList.add('hide');
+  setTimeout(()=>{document.getElementById('splash').remove();},600);
+  document.getElementById('app').style.opacity='1';
+},2400);
+
+loadFromSheets();
+</script>
+</body>
+</html>
